@@ -3,7 +3,7 @@ import requests
 import base64
 
 # API URL (replace with your backend's URL)
-API_URL = "https://g28ts5sgtg.execute-api.ap-northeast-1.amazonaws.com/"
+API_URL = "https://g28ts5sgtg.execute-api.ap-northeast-1.amazonaws.com"
 
 # Function to upload PDF
 def upload_pdf(file):
@@ -21,28 +21,34 @@ def upload_pdf(file):
         }
 
         # Send request to the backend API
-        response = requests.post(f"{API_URL}/upload", json=payload)
-        
-        if response.status_code == 200:
-            st.success(f"PDF '{filename}' uploaded and processed successfully.")
-        else:
-            st.error(f"Error: {response.json().get('detail')}")
+        try:
+            response = requests.post(f"{API_URL}/upload", json=payload)
+            response.raise_for_status()
+            if response.status_code == 200:
+                st.success(f"PDF '{filename}' uploaded and processed successfully.")
+            else:
+                st.error(f"Error: {response.json().get('detail')}")
+        except requests.exceptions.RequestException as e:
+            st.error(f"Request failed: {e}")
 
 # Function to ask question
 def ask_question(question):
     if question:
         payload = {"question": question}
-        response = requests.post(f"{API_URL}/ask", json=payload)
-        
-        if response.status_code == 200:
-            answer = response.json().get("response")
-            return answer
-        else:
-            st.error(f"Error: {response.json().get('detail')}")
+        try:
+            response = requests.post(f"{API_URL}/ask", json=payload)
+            response.raise_for_status()
+            if response.status_code == 200:
+                answer = response.json().get("response")
+                return answer
+            else:
+                st.error(f"Error: {response.json().get('detail')}")
+        except requests.exceptions.RequestException as e:
+            st.error(f"Request failed: {e}")
             return None
 
 # Streamlit App Layout
-st.sidebar.title("Document Q&A Chatbot")
+st.sidebar.title("FundastA Chatbot")
 
 # Initialize session state for chat history
 if "messages" not in st.session_state:
