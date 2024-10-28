@@ -59,7 +59,8 @@ st.sidebar.header("Upload a PDF")
 uploaded_file = st.sidebar.file_uploader("Choose a PDF file", type="pdf")
 if uploaded_file:
     if st.sidebar.button("Upload PDF"):
-        upload_pdf(uploaded_file)
+         with st.spinner("Processing PDF upload..."):
+            upload_pdf(uploaded_file)
 
 # Section for asking questions
 st.header("Ask a Question")
