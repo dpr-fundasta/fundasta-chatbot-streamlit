@@ -3,7 +3,7 @@ import requests
 import base64
 
 # API URL (replace with your backend's URL)
-API_URL = "https://g28ts5sgtg.execute-api.ap-northeast-1.amazonaws.com"
+API_URL = "https://g28ts5sgtg.execute-api.ap-northeast-1.amazonaws.com"# Ensure you use the correct stage
 
 # Function to upload PDF
 def upload_pdf(file):
@@ -11,6 +11,7 @@ def upload_pdf(file):
         # Read file content and encode in base64
         file_data = file.read()
         encoded_file = base64.b64encode(file_data).decode('utf-8')
+        
         filename = file.name
 
         # Prepare payload for PDF upload
@@ -22,21 +23,38 @@ def upload_pdf(file):
         # Send request to the backend API
         try:
             response = requests.post(f"{API_URL}/upload", json=payload)
-            response.raise_for_status()  # Raise exception if status code is not 200-299
-            response_data = response.json()  # Parse the JSON response
-
+            response.raise_for_status()  # Will raise an error for HTTP error responses
             if response.status_code == 200:
-                detail = response_data.get("detail", "Upload successful.")
-                st.success(detail)  # Display success message with details
+                st.success(f"PDF '{filename}' uploaded and processed successfully.")
             else:
-                error_message = response_data.get("detail", "Unknown error occurred.")
-                st.error(f"Error: {error_message}")
-
+                st.error(f"Error: {response.json().get('detail')}")
+                st.write(response.text)  # Print the full response for debugging
         except requests.exceptions.RequestException as e:
             st.error(f"Request failed: {e}")
 
+# Function to ask a question
+def ask_question(question):
+    if question:
+        payload = {"question": question}
+        try:
+            response = requests.post(f"{API_URL}/ask", json=payload)
+            response.raise_for_status()
+            if response.status_code == 200:
+                answer = response.json().get("response")
+                return answer
+            else:
+                st.error(f"Error: {response.json().get('detail')}")
+                st.write(response.text)  # Print the full response for debugging
+        except requests.exceptions.RequestException as e:
+            st.error(f"Request failed: {e}")
+            return None
+
 # Streamlit App Layout
 st.sidebar.title("FundastA Chatbot")
+
+# Initialize session state for chat history
+if "messages" not in st.session_state:
+    st.session_state.messages = []
 
 # Section for PDF Upload
 st.sidebar.header("Upload a PDF")
@@ -45,3 +63,27 @@ if uploaded_file:
     if st.sidebar.button("Upload PDF"):
         with st.spinner("Processing PDF upload..."):
             upload_pdf(uploaded_file)
+
+# Section for asking questions
+st.header("Ask a Question")
+
+# Display chat history
+for message in st.session_state.messages:
+    with st.chat_message(message["role"]):
+        st.markdown(message["content"])
+
+# Input box for user question
+if user_input := st.chat_input("Ask a question..."):
+    # Display the user's message in the chat
+    st.session_state.messages.append({"role": "user", "content": user_input})
+    with st.chat_message("user"):
+        st.markdown(user_input)
+    
+    # Get response from backend
+    response = ask_question(user_input)
+    
+    # Display the agent's response in the chat
+    if response:
+        st.session_state.messages.append({"role": "assistant", "content": response})
+        with st.chat_message("assistant"):
+            st.markdown(response)
