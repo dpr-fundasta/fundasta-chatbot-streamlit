@@ -4,7 +4,7 @@ import base64
 
 # API URL (replace with your backend's URL)
 API_URL = "https://g28ts5sgtg.execute-api.ap-northeast-1.amazonaws.com"
-#API_URL = "https://jo2v9eql90.execute-api.ap-northeast-1.amazonaws.com/dev"
+
 
 # Function to upload PDF
 def upload_pdf(file):
@@ -49,7 +49,7 @@ def ask_question(question):
             return None
 
 # Streamlit App Layout
-st.sidebar.title("FundastA Chatbot")
+st.sidebar.title("FundastA RAG Chatbot")
 
 # Initialize session state for chat history
 if "messages" not in st.session_state:
@@ -63,8 +63,7 @@ if uploaded_file:
          with st.spinner("Processing PDF upload..."):
             upload_pdf(uploaded_file)
 
-# Section for asking questions
-st.header("Ask a Question")
+
 
 # Display chat history
 for message in st.session_state.messages:
