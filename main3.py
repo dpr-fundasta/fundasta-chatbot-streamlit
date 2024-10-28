@@ -2,42 +2,79 @@ import streamlit as st
 import requests
 import base64
 
-# Replace with your API Gateway endpoint
+# API URL (replace with your backend's URL)
 API_URL = "https://dobsyrx0ci.execute-api.ap-northeast-1.amazonaws.com/develop"
 
-# Set up Streamlit interface
-st.title("PDF Processor and Query System")
-
-# PDF upload function
+# Function to upload PDF
 def upload_pdf(file):
-    pdf_base64 = base64.b64encode(file.read()).decode('utf-8')
-    response = requests.post(
-        f"{API_URL}/upload",
-        json={
-            "pdf_base64": pdf_base64,
-            "filename": file.name
+    if file is not None:
+        # Read file content and encode in base64
+        file_data = file.read()
+        encoded_file = base64.b64encode(file_data).decode('utf-8')
+        
+        filename = file.name
+
+        # Prepare payload for PDF upload
+        payload = {
+            "pdf_base64": encoded_file,
+            "filename": filename
         }
-    )
-    return response.json()
 
-# PDF query function
+        # Send request to the backend API
+        response = requests.post(f"{API_URL}/upload", json=payload)
+        
+        if response.status_code == 200:
+            st.success(f"PDF '{filename}' uploaded and processed successfully.")
+        else:
+            st.error(f"Error: {response.json().get('detail')}")
+
+# Function to ask question
 def ask_question(question):
-    response = requests.post(
-        f"{API_URL}/ask",
-        json={"question": question}
-    )
-    return response.json()
+    if question:
+        payload = {"question": question}
+        response = requests.post(f"{API_URL}/ask", json=payload)
+        
+        if response.status_code == 200:
+            answer = response.json().get("response")
+            return answer
+        else:
+            st.error(f"Error: {response.json().get('detail')}")
+            return None
 
-# Upload PDF
-uploaded_file = st.file_uploader("Choose a PDF file to upload", type="pdf")
-if uploaded_file is not None:
-    st.write("Uploading PDF...")
-    upload_response = upload_pdf(uploaded_file)
-    st.write(upload_response)
+# Streamlit App Layout
+st.sidebar.title("Document Q&A Chatbot")
 
-# Ask a question about the PDF
-question = st.text_input("Ask a question about the document")
-if question:
-    st.write("Fetching answer...")
-    question_response = ask_question(question)
-    st.write(question_response.get("response", "No response available"))
+# Initialize session state for chat history
+if "messages" not in st.session_state:
+    st.session_state.messages = []
+
+# Section for PDF Upload
+st.sidebar.header("Upload a PDF")
+uploaded_file = st.sidebar.file_uploader("Choose a PDF file", type="pdf")
+if uploaded_file:
+    if st.sidebar.button("Upload PDF"):
+        upload_pdf(uploaded_file)
+
+# Section for asking questions
+st.header("Ask a Question")
+
+# Display chat history
+for message in st.session_state.messages:
+    with st.chat_message(message["role"]):
+        st.markdown(message["content"])
+
+# Input box for user question
+if user_input := st.chat_input("Ask a question..."):
+    # Display the user's message in the chat
+    st.session_state.messages.append({"role": "user", "content": user_input})
+    with st.chat_message("user"):
+        st.markdown(user_input)
+    
+    # Get response from backend
+    response = ask_question(user_input)
+    
+    # Display the agent's response in the chat
+    if response:
+        st.session_state.messages.append({"role": "assistant", "content": response})
+        with st.chat_message("assistant"):
+            st.markdown(response)
