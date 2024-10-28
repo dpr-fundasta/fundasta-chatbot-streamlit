@@ -3,8 +3,8 @@ import requests
 import base64
 
 # API URL (replace with your backend's URL)
-#API_URL = "https://g28ts5sgtg.execute-api.ap-northeast-1.amazonaws.com"
-API_URL = "https://jo2v9eql90.execute-api.ap-northeast-1.amazonaws.com/dev"
+API_URL = "https://g28ts5sgtg.execute-api.ap-northeast-1.amazonaws.com"
+#API_URL = "https://jo2v9eql90.execute-api.ap-northeast-1.amazonaws.com/dev"
 
 # Function to upload PDF
 def upload_pdf(file):
