@@ -41,19 +41,19 @@ def ask_question(question):
             st.error(f"Error: {response.json().get('detail')}")
             return None
 
-# Streamlit App Layout
-st.sidebar.title("Document Q&A Chatbot")
+# # Streamlit App Layout
+# st.sidebar.title("Document Q&A Chatbot")
 
 # Initialize session state for chat history
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# Section for PDF Upload
-st.sidebar.header("Upload a PDF")
-uploaded_file = st.sidebar.file_uploader("Choose a PDF file", type="pdf")
-if uploaded_file:
-    if st.sidebar.button("Upload PDF"):
-        upload_pdf(uploaded_file)
+# # Section for PDF Upload
+# st.sidebar.header("Upload a PDF")
+# uploaded_file = st.sidebar.file_uploader("Choose a PDF file", type="pdf")
+# if uploaded_file:
+#     if st.sidebar.button("Upload PDF"):
+#         upload_pdf(uploaded_file)
 
 # Section for asking questions
 st.header("Ask a Question")
