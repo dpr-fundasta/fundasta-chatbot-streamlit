@@ -21,7 +21,7 @@ def upload_pdf(file):
         }
 
         # Send request to the backend API
-        response = requests.post(f"{API_URL}/upload", json=payload)
+        response = requests.post(f"https://h8l1p5yxsj.execute-api.ap-northeast-1.amazonaws.com/Initial/", json=payload)
         
         if response.status_code == 200:
             st.success(f"PDF '{filename}' uploaded and processed successfully.")
