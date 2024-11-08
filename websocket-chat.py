@@ -9,7 +9,7 @@ WS_URL = "wss://lckhw3fof3.execute-api.ap-northeast-1.amazonaws.com/production" 
 API_URL = "https://j0kn8pau5l.execute-api.ap-northeast-1.amazonaws.com/develop/upload"  
 # Set up the Streamlit app layout
 
-st.write("This chatbot interacts with a backend WebSocket function. Enter your question below.")
+
 st.sidebar.title("FundastA R.A.G Chatbot")
 uploaded_file = st.sidebar.file_uploader("Choose a PDF file", type="pdf")
 st.sidebar.write("Maximum file size: 10 MB")
