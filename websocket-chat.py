@@ -5,7 +5,7 @@ import requests
 import base64
 import time
 # WebSocket endpoint
-WS_URL = "wss://lckhw3fof3.execute-api.ap-northeast-1.amazonaws.com/production"  # Replace with the actual WebSocket URL
+WS_URL = "wss://45ffkltfea.execute-api.ap-northeast-1.amazonaws.com/production"  # Replace with the actual WebSocket URL
 API_URL = "https://j0kn8pau5l.execute-api.ap-northeast-1.amazonaws.com/develop/upload"  
 # Set up the Streamlit app layout
 
