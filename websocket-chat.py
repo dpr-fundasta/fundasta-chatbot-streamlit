@@ -111,6 +111,6 @@ if user_input:
 # Display the conversation
 for message in st.session_state.conversation:
     if "user" in message:
-        st.write(f"▲ {message['user']}", is_user=True)
+        st.write(f"▲ {message['user']}")
     elif "bot" in message:
         st.write(f"▼ {message['bot']}")
