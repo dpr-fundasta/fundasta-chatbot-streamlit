@@ -81,8 +81,8 @@ def ask_websocket(question):
             responses.append(response_data)
             
             # Stop receiving if "Response Completed" is received
-            if response_data.get("response") == "Response Completed":
-                break
+            # if response_data.get("response") == "Response Completed":
+            #     break
         
         # Close WebSocket connection
         ws.close()
