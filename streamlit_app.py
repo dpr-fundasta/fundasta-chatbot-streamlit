@@ -1,151 +1,101 @@
 import streamlit as st
-import io
-import PyPDF2
-from langchain_openai import ChatOpenAI
-from openai import OpenAI
-from pinecone import Pinecone
-from langchain_experimental.text_splitter import SemanticChunker
-from langchain_openai.embeddings import OpenAIEmbeddings
-from prompt import CONTEXT_PROMPT
+from websocket import create_connection
+import json
 import requests
+import base64
+# WebSocket and API URLs
+WS_URL = "wss://lckhw3fof3.execute-api.ap-northeast-1.amazonaws.com/production"  # Replace with actual WebSocket URL
+API_URL = "https://j0kn8pau5l.execute-api.ap-northeast-1.amazonaws.com/develop/upload"
+# Set up Streamlit layout
+st.sidebar.title("FundastA R.A.G Chatbot")
+uploaded_file = st.sidebar.file_uploader("Choose a PDF file", type="pdf")
+st.sidebar.write("Maximum file size: 10 MB")
+# Initialize session state to store file content and name
+if "file_uploaded" not in st.session_state:
+    st.session_state["file_uploaded"] = False
+    st.session_state["file_name"] = ""
+    st.session_state["file_content_base64"] = ""
+if uploaded_file and not st.session_state["file_uploaded"]:
+    # Check file size
+    file_size = uploaded_file.size
+    max_size = 10 * 1024 * 1024  # 10 MB in bytes
+    if file_size > max_size:
+        st.error("File exceeds the 10 MB limit. Please choose a smaller file.")
+    else:
+        # Read and encode the PDF file content in base64
+        file_content = uploaded_file.read()
+        st.session_state["file_content_base64"] = base64.b64encode(file_content).decode("utf-8")
+        st.session_state["file_name"] = uploaded_file.name
+        st.session_state["file_uploaded"] = True
 
-# API URL (replace with your backend's URL)
-API_URL = "https://g28ts5sgtg.execute-api.ap-northeast-1.amazonaws.com"
-OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"]
-PINECONE_API_KEY = st.secrets["PINECONE_API_KEY"]
-
-# Set up OpenAI and Pinecone clients
-client = OpenAI(api_key=OPENAI_API_KEY)
-embeddings_model = OpenAIEmbeddings(model="text-embedding-3-small", api_key=OPENAI_API_KEY)
-chat_model = ChatOpenAI(model="gpt-4o-mini", api_key=OPENAI_API_KEY, temperature=0.4)
-pc = Pinecone(PINECONE_API_KEY)
-index_name = "test-a"
-index = pc.Index(index_name)
-
-# Function to ask question
-def ask_question(question):
-    if question:
-        payload = {"question": question}
-        response = requests.post(f"{API_URL}/ask", json=payload)
-        
-        if response.status_code == 200:
-            answer = response.json().get("response")
-            return answer
-        else:
-            st.error(f"Error: {response.json().get('detail')}")
-            return "Unknown error occured!"
-        
-def generate_chunk_context(whole_document: str, chunk: str) -> str:
-    """Generates context for a chunk using ChatOpenAI model."""
-    variables = {"WHOLE_DOCUMENT": whole_document, "CHUNK_CONTENT": chunk}
-    openai_chain = CONTEXT_PROMPT | chat_model
-    response = openai_chain.invoke(variables)
-    return response.content
-
-
-def process_pdf(pdf_file, filename):
-    """Extracts text, splits it into chunks, and stores embeddings in Pinecone."""
+        # Prepare the JSON payload
+        payload = {
+            "file_name": st.session_state["file_name"],
+            "file_content": st.session_state["file_content_base64"]
+        }
+      
+        try:
+            # Send the POST request to the API
+            response = requests.post(API_URL, json=payload)
+            
+            # Check the response
+            if response.status_code == 200:
+                st.sidebar.success("File uploaded successfully!")
+            else:
+                st.sidebar.error(f"Failed to upload file. Status code: {response.status_code}")
+                st.sidebar.write(response.text)
+                
+        except requests.RequestException as e:
+            st.error(f"Request failed: {e}")
+# Store conversation in session state
+if "conversation" not in st.session_state:
+    st.session_state["conversation"] = []
+# WebSocket connection function
+def ask_websocket(question):
     try:
-        text = ""
-        reader = PyPDF2.PdfReader(pdf_file)
-        total_pages = len(reader.pages)
-
-        # Initialize progress bar
-        progress_bar = st.progress(0)
-
-        for i, page in enumerate(reader.pages):
-            text += page.extract_text() or ""
-            # Update progress bar
-            progress_bar.progress((i + 1) / total_pages)
-
-        # Check if text is extracted
-        if not text:
-            st.error("No text could be extracted from the PDF.")
-           
-
-        # Split text into chunks
-        text_splitter = SemanticChunker(
-            embeddings_model, 
-            breakpoint_threshold_type="percentile", 
-            breakpoint_threshold_amount=60
-        )
-        docs = text_splitter.create_documents([text])
-
-        vectors = []
-        for i, doc in enumerate(docs):
-            chunk_text = doc.page_content
-            context = generate_chunk_context(text, chunk_text)
-            enriched_chunk = f"{context}\n{chunk_text}"
-            embedding_response = client.embeddings.create(
-                input=enriched_chunk, model="text-embedding-3-small"
-            )
-            embedding_vector = embedding_response.data[0].embedding
-
-            # Create vector for Pinecone
-            vectors.append((f"{filename}_{i}", embedding_vector, {"text": enriched_chunk}))
-
-            # Update progress bar for embedding creation
-            progress_bar.progress((total_pages + i + 1) / (total_pages + len(docs)))
-
-        # Upsert vectors to Pinecone
-        index.upsert(vectors=vectors)
-        st.sidebar.success(f"PDF successfully processed and stored. Chunk count: {len(docs)}")
-
-        # Store the filename in session state to avoid reprocessing
-        st.session_state.processed_file = filename
+        # Establish WebSocket connection
+        ws = create_connection(WS_URL)
         
+        # Format and send message to WebSocket
+        payload = json.dumps({"action": "ask", "question": question})
+        ws.send(payload)
+        
+        # Receive responses (blocking call)
+        responses = []
+        while True:
+            result = ws.recv()
+            if not result:
+                break
+            
+            # Parse response
+            response_data = json.loads(result)
+            responses.append(response_data)
+        
+        # Close WebSocket connection
+        ws.close()
+        
+        return responses
     
     except Exception as e:
-        st.sidebar.error(f"Failed to process PDF: {str(e)}")
-       
+        return [{"response": f"Error: {e}"}]
+# Message input box
+user_input = st.chat_input("Type your question here")
+# Handle user input
+if user_input:
+    # Display user's message
+    st.session_state.conversation.append({"user": user_input})
 
-
-# Initialize session state for chat history
-if "messages" not in st.session_state:
-    st.session_state.messages = []
-
-if "processed_file" not in st.session_state:
-    st.session_state.processed_file = None
-
-
-with st.sidebar:
-
-# Streamlit App Layout
-    st.title("FundastA R.A.G Chatbot")
-
-# PDF uploader logic
-    uploaded_file = st.file_uploader("Upload a PDF file", type="pdf")
-    if uploaded_file is not None:
-        filename = uploaded_file.name
+    # Send user's message to backend and get response
+    backend_responses = ask_websocket(user_input)
     
-        # Process the PDF only if it hasn't been processed yet
-        if filename != st.session_state.processed_file:
-            result = process_pdf(io.BytesIO(uploaded_file.read()), filename)
-            if result:
-                st.write(result)
-        else:
-            st.info("This PDF has already been processed.")
+    # Process backend responses
+    for response in backend_responses:
+        if "response" in response:
+            st.session_state.conversation.append({"bot": response["response"]})
 
-
-
-
-# Display chat history
-for message in st.session_state.messages:
-    with st.chat_message(message["role"]):
-        st.markdown(message["content"])
-
-# Input box for user question
-if user_input := st.chat_input("Ask a question about FundastA..."):
-    # Display the user's message in the chat
-    st.session_state.messages.append({"role": "user", "content": user_input})
-    with st.chat_message("user"):
-        st.markdown(user_input)
-    
-    # Get response from backend
-    response = ask_question(user_input)
-    
-    # Display the agent's response in the chat
-    if response:
-        st.session_state.messages.append({"role": "assistant", "content": response})
-        with st.chat_message("assistant"):
-            st.markdown(response)
+# Display the conversation
+for message in st.session_state.conversation:
+    if "user" in message:
+        st.write(f"▲ {message['user']}")
+    elif "bot" in message:
+        st.write(f"▼ {message['bot']}")
