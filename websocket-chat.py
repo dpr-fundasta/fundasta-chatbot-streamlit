@@ -1,5 +1,5 @@
 import streamlit as st
-from websocket import create_connection
+from websocket import create_connection, WebSocket
 import json
 import requests
 import base64
@@ -13,7 +13,7 @@ st.sidebar.title("FundastA R.A.G Chatbot")
 uploaded_file = st.sidebar.file_uploader("Choose a PDF file", type="pdf")
 st.sidebar.write("Maximum file size: 10 MB")
 
-# Initialize session state for file and WebSocket
+# Initialize session state for file, WebSocket, and conversation
 if "file_uploaded" not in st.session_state:
     st.session_state["file_uploaded"] = False
     st.session_state["file_name"] = ""
@@ -127,6 +127,7 @@ for message in st.session_state.conversation:
         st.write(f"▲ {message['user']}")
     elif "bot" in message:
         st.write(f"▼ {message['bot']}")
+
 
 # import streamlit as st
 # from websocket import create_connection
