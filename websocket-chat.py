@@ -1,5 +1,5 @@
 import streamlit as st
-from websocket import create_connection, WebSocket
+from websocket import create_connection
 import json
 import requests
 import base64
@@ -70,7 +70,7 @@ def init_websocket():
             st.error(f"Failed to connect to WebSocket: {e}")
 
 def close_websocket():
-    """Close the WebSocket connection when the session ends."""
+    """Close the WebSocket connection."""
     if st.session_state.websocket:
         try:
             st.session_state.websocket.close()
@@ -78,9 +78,7 @@ def close_websocket():
             st.error(f"Failed to close WebSocket: {e}")
         st.session_state.websocket = None
 
-# Register a Streamlit callback to close WebSocket when the session ends
-st.on_session_end(close_websocket)
-
+# WebSocket interaction function
 def ask_websocket(question):
     """Send a question through WebSocket and receive responses."""
     init_websocket()  # Ensure the WebSocket connection is active
@@ -105,6 +103,10 @@ def ask_websocket(question):
     except Exception as e:
         return [{"response": f"Error: {e}"}]
 
+# Ensure WebSocket is closed when the app reloads
+if st.session_state.websocket:
+    st.sidebar.button("End Session", on_click=close_websocket)
+
 # Message input box
 user_input = st.chat_input("Type your question here")
 
@@ -127,6 +129,7 @@ for message in st.session_state.conversation:
         st.write(f"▲ {message['user']}")
     elif "bot" in message:
         st.write(f"▼ {message['bot']}")
+
 
 
 # import streamlit as st
