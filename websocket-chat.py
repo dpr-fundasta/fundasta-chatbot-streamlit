@@ -6,7 +6,7 @@ import base64
 
 # WebSocket and API URLs
 WS_URL = "wss://45ffkltfea.execute-api.ap-northeast-1.amazonaws.com/production"  # Replace with actual WebSocket URL
-API_URL = "https://j0kn8pau5l.execute-api.ap-northeast-1.amazonaws.com/develop/upload"
+API_URL = "https://y3eghvmyjf.execute-api.ap-northeast-1.amazonaws.com/production/upload"
 
 # Set up Streamlit layout
 st.sidebar.title("FundastA R.A.G Chatbot")
